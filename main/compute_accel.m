@@ -52,7 +52,7 @@ function [ax, ay, atheta] = compute_accel(x, y, theta, box_params)
         F_spr = F_spr + F_i;
         
         % calculate torque from each spring
-        r = PB - [x; y]; % vector from spring-box contact point to CoM
+        r = PB - [x; y]; % vector from CoM to spring-box contact point
         T_i = cross([r; 0], [F_i; 0]);
         T_spr = T_spr + T_i(3);
     end
