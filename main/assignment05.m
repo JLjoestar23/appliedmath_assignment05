@@ -32,7 +32,7 @@ simulate_box(V0, tspan, box_params);
 
 % solve for equilibrium point
 solver_params.max_iter = 1000;
-V_eq = multivariate_newton_solver(@(V) box_rate_func(0, V, box_params), V0, solver_params);
+V_eq = multivariate_newton_solver(@(V) box_rate_func(0, V, box_params), zeros(6, 1), solver_params);
 
 % compute Jacobian approximation
 J_approx = approximate_jacobian(@(V) box_rate_func(0, V, box_params), V_eq);
@@ -88,6 +88,71 @@ legend();
 grid on;
 hold off;
 
+%% Modal analysis
 
+% shape Q into 3x3 from the Jacobian approx
+A = J_approx;
+Q = A(4:6, 1:3);
 
-%% 
+% solve eigenvalue/eigenvector problem
+[U_mode, w_n] = eigs(Q);
+
+% small pertubation
+epsilon = 0.1;
+
+V0 = V_eq + epsilon*[U_mode; zeros(3,3)];
+
+tspan = [0 2];
+
+% integrating non-linear model
+nlin_rate_func = @(t, V) box_rate_func(t, V, box_params);
+[tlist_nlin_1, Vlist_nlin_1] = ode45(nlin_rate_func, tspan, V0(:,1));
+[tlist_nlin_2, Vlist_nlin_2] = ode45(nlin_rate_func, tspan, V0(:,2));
+[tlist_nlin_3, Vlist_nlin_3] = ode45(nlin_rate_func, tspan, V0(:,3));
+
+%{
+figure();
+hold on;
+plot(tlist_nlin_1, Vlist_nlin_1(:, 3), 'DisplayName', 'Mode1') % theta mode shape
+plot(tlist_nlin_2, Vlist_nlin_2(:, 1), 'DisplayName', 'Mode2') % x mode shape
+plot(tlist_nlin_3, Vlist_nlin_3(:, 2), 'DisplayName', 'Mode3') % y mode shape
+legend();
+hold off;
+%}
+
+figure();
+subplot(3, 1, 1);
+plot(tlist_nlin_2, Vlist_nlin_2(:, 1), '.', 'DisplayName', 'Non-linear Numerical');
+hold on;
+x_modal = V_eq(1) + epsilon * U_mode(1,2) * cos(sqrt(norm(w_n(2, 2))) * tlist_nlin_2);
+plot(tlist_nlin_2, x_modal, '-', 'DisplayName', 'Linear Analytical')
+title('X comparison');
+xlabel('Time (s)');
+ylabel('X (m)')
+legend();
+grid on;
+hold off;
+
+subplot(3, 1, 2);
+plot(tlist_nlin_3, Vlist_nlin_3(:, 2), '.', 'DisplayName', 'Non-linear Numerical');
+hold on;
+y_modal = V_eq(2) + epsilon * U_mode(2,3) * cos(sqrt(norm(w_n(3, 3))) * tlist_nlin_3);
+plot(tlist_nlin_3, y_modal, '-', 'DisplayName', 'Linear Analytical')
+title('Y comparison');
+xlabel('Time (s)');
+ylabel('Y (m)')
+legend();
+grid on;
+hold off;
+
+subplot(3, 1, 3);
+plot(tlist_nlin_1, Vlist_nlin_1(:, 3), '.', 'DisplayName', 'Non-linear Numerical');
+hold on;
+theta_modal = V_eq(3) + epsilon * U_mode(3,1) * cos(sqrt(norm(w_n(1, 1))) * tlist_nlin_1);
+plot(tlist_nlin_1, theta_modal, '-', 'DisplayName', 'Linear Analytical')
+title('Theta Comparison');
+xlabel('Time (s)');
+ylabel('Theta (rads)')
+legend();
+grid on;
+hold off;
