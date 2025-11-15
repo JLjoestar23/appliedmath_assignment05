@@ -1,6 +1,6 @@
-function simulate_box()
+function simulate_box(x0, tspan, box_params)
+    %{
     %define system parameters
-    num_springs = 4;
     box_params = struct();
     box_params.m = 1; % kg
     box_params.I = 1/6 * box_params.m * 2; % m^4
@@ -12,23 +12,27 @@ function simulate_box()
     % spring-box contact points are at the 4 corners
     box_params.P_box = [-1, 1, 1, -1; 
                         -1, -1, 1, 1]; % m
+    %}
+    num_springs = 4;
 
     % define rate function
     rate_func = @(t_in, V_in) box_rate_func(t_in, V_in, box_params);
     
     % define ICs
-    x0 = 0;
+    %{
+    x0 = 2;
     y0 = 0;
-    theta0 = deg2rad(180);
+    theta0 = deg2rad(10);
     vx0 = 0;
-    vy0 = 0;
+    vy0 = 6;
     vtheta0 = 0;
     V0 = [x0; y0; theta0; vx0; vy0; vtheta0]; 
+    %}
     
-    tspan = [0 30]; % 30s time span
+    %tspan = [0 30]; % 30s time span
 
     %run the integration
-    [tlist, Vlist] = ode45(rate_func, tspan, V0);
+    [tlist, Vlist] = ode45(rate_func, tspan, x0);
 
     % visualization
     num_zigs = 5;
@@ -78,11 +82,11 @@ function simulate_box()
         box_plot.YData = [P2_all(2, :), P2_all(2, 1)];
 
         drawnow;
-        frame = getframe(gcf); %get frame
-        writeVideo(myVideo, frame);
+        %frame = getframe(gcf); %get frame
+        %writeVideo(myVideo, frame);
         pause(dt_real); % keeps playback consistent with physical time
     end
-    close(myVideo);
+    %close(myVideo);
 end
 
 % helper function for visualizing springs
