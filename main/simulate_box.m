@@ -1,4 +1,4 @@
-function simulate_box(x0, tspan, box_params)
+function simulate_box(x0, tspan, box_params, record_status, file_name)
     %{
     %define system parameters
     box_params = struct();
@@ -13,7 +13,7 @@ function simulate_box(x0, tspan, box_params)
     box_params.P_box = [-1, 1, 1, -1; 
                         -1, -1, 1, 1]; % m
     %}
-    num_springs = 4;
+    num_springs = box_params.num_springs;
 
     % define rate function
     rate_func = @(t_in, V_in) box_rate_func(t_in, V_in, box_params);
@@ -35,13 +35,13 @@ function simulate_box(x0, tspan, box_params)
     [tlist, Vlist] = ode45(rate_func, tspan, x0);
 
     % visualization
+    figure();
     num_zigs = 5;
     w = 0.1;
     hold on;
     axis equal; axis square;
     axis([-5, 5, -5, 5]);
     xlabel('x (m)'); ylabel('y (m)');
-    title('Box-Spring System Visualization');
 
     % initialize spring plotting structures for n springs
     for j = 1:num_springs
@@ -58,11 +58,15 @@ function simulate_box(x0, tspan, box_params)
     dt_real = 1/fps; % seconds per frame
 
     % initialize video
-    %myVideo = VideoWriter('spin-me-around'); %open video file
-    %myVideo.FrameRate = 60;
-    %open(myVideo)
+    if record_status == true
+        myVideo = VideoWriter(file_name); %open video file
+        myVideo.FrameRate = 60;
+        open(myVideo)
+    end
     
     for i = 1:length(t_anim)
+        title(sprintf('Box-Spring System Visualization (t = %.2f s)', t_anim(i)));
+
         % extract interpolated state
         x = V_anim(i, 1);
         y = V_anim(i, 2);
@@ -82,11 +86,19 @@ function simulate_box(x0, tspan, box_params)
         box_plot.YData = [P2_all(2, :), P2_all(2, 1)];
 
         drawnow;
-        %frame = getframe(gcf); %get frame
-        %writeVideo(myVideo, frame);
+
+        if record_status == true
+            frame = getframe(gcf); %get frame
+            writeVideo(myVideo, frame);
+        end
+
         pause(dt_real); % keeps playback consistent with physical time
+
     end
-    %close(myVideo);
+
+    if record_status == true
+        close(myVideo);
+    end
 end
 
 % helper function for visualizing springs
